@@ -1,0 +1,195 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Pas d'enums pour SQLite, on utilise des strings avec validation
+
+// Modèles principaux
+
+model Contest {
+  id            String   @id @default(uuid())
+  name          String
+  location      String?  // Lieu optionnel
+  teamType      String   // TETE_A_TETE, DOUBLETTE, TRIPLETTE
+  gameMode      String   @default("MONTE") // MONTE ou MELEE
+  status        String   @default("DRAFT") // DRAFT, IN_PROGRESS, FINISHED
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  teams               Team[]
+  brackets            Bracket[]
+  qualificationRounds QualificationRound[]
+  players             MeleePlayer[] // Joueurs individuels pour le mode Mélée
+}
+
+model Team {
+  id         String   @id @default(uuid())
+  contestId  String
+  teamNumber Int
+  name       String?
+  club       String?
+  status     String   @default("REGISTERED") // REGISTERED, FORFEIT, DISQUALIFIED, ELIMINATED
+  createdAt  DateTime @default(now())
+
+  contest Contest  @relation(fields: [contestId], references: [id], onDelete: Cascade)
+  players Player[]
+
+  // Relations pour les matchs de qualification
+  homeQualificationMatches   QualificationMatch[] @relation("QualificationHomeTeam")
+  awayQualificationMatches   QualificationMatch[] @relation("QualificationAwayTeam")
+  wonQualificationMatches    QualificationMatch[] @relation("QualificationWinnerTeam")
+  lostQualificationMatches   QualificationMatch[] @relation("QualificationLoserTeam")
+
+  // Relations pour les matchs de bracket
+  homeBracketMatches BracketMatch[] @relation("BracketHomeTeam")
+  awayBracketMatches BracketMatch[] @relation("BracketAwayTeam")
+  wonBracketMatches  BracketMatch[] @relation("BracketWinnerTeam")
+  lostBracketMatches BracketMatch[] @relation("BracketLoserTeam")
+
+  @@unique([contestId, teamNumber])
+  @@index([contestId])
+}
+
+model Player {
+  id        String @id @default(uuid())
+  teamId    String
+  firstName String
+  lastName  String
+  order     Int // Position dans l'équipe (1, 2, ou 3)
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@index([teamId])
+}
+
+// Joueurs individuels pour le mode Mélée
+model MeleePlayer {
+  id        String   @id @default(uuid())
+  contestId String
+  name      String
+  createdAt DateTime @default(now())
+
+  contest Contest @relation(fields: [contestId], references: [id], onDelete: Cascade)
+
+  @@index([contestId])
+}
+
+// Tours de qualification (Tour 1 et Tour 2)
+model QualificationRound {
+  id          String   @id @default(uuid())
+  contestId   String
+  roundNumber Int      // 1 ou 2
+  createdAt   DateTime @default(now())
+
+  contest Contest              @relation(fields: [contestId], references: [id], onDelete: Cascade)
+  matches QualificationMatch[]
+
+  @@unique([contestId, roundNumber])
+  @@index([contestId])
+}
+
+model QualificationMatch {
+  id           String   @id @default(uuid())
+  roundId      String
+  matchNumber  Int
+  groupType    String?  // Pour le Tour 2: "WINNERS" ou "LOSERS"
+  homeTeamId   String?
+  awayTeamId   String?
+  status       String   @default("SCHEDULED") // SCHEDULED, IN_PROGRESS, FINISHED, FORFEIT
+
+  // Résultats
+  homeScore    Int?
+  awayScore    Int?
+  winnerTeamId String?
+  loserTeamId  String?
+
+  // Exemption
+  isBye        Boolean  @default(false) // true si l'équipe est exemptée
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  round      QualificationRound @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  homeTeam   Team?              @relation("QualificationHomeTeam", fields: [homeTeamId], references: [id])
+  awayTeam   Team?              @relation("QualificationAwayTeam", fields: [awayTeamId], references: [id])
+  winnerTeam Team?              @relation("QualificationWinnerTeam", fields: [winnerTeamId], references: [id])
+  loserTeam  Team?              @relation("QualificationLoserTeam", fields: [loserTeamId], references: [id])
+
+  @@unique([roundId, matchNumber])
+  @@index([roundId])
+  @@index([homeTeamId])
+  @@index([awayTeamId])
+}
+
+model Bracket {
+  id        String   @id @default(uuid())
+  contestId String
+  type      String   // A ou B
+  createdAt DateTime @default(now())
+
+  contest Contest        @relation(fields: [contestId], references: [id], onDelete: Cascade)
+  rounds  BracketRound[]
+
+  @@unique([contestId, type])
+  @@index([contestId])
+}
+
+model BracketRound {
+  id           String   @id @default(uuid())
+  bracketId    String
+  roundNumber  Int // 1 = premiers tours, 2 = demi, 3 = finale
+  roundName    String // "Tour 1", "Quarts", "Demi-finales", "Finale"
+  createdAt    DateTime @default(now())
+
+  bracket Bracket        @relation(fields: [bracketId], references: [id], onDelete: Cascade)
+  matches BracketMatch[]
+
+  @@unique([bracketId, roundNumber])
+  @@index([bracketId])
+}
+
+model BracketMatch {
+  id            String   @id @default(uuid())
+  roundId       String
+  matchNumber   Int
+  homeTeamId    String?
+  awayTeamId    String?
+  status        String   @default("SCHEDULED") // SCHEDULED, IN_PROGRESS, FINISHED, FORFEIT
+
+  // Résultats
+  homeScore     Int?
+  awayScore     Int?
+  winnerTeamId  String?
+  loserTeamId   String?
+
+  // Progression
+  nextMatchId   String?
+  isBye         Boolean  @default(false)
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  round           BracketRound    @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  homeTeam        Team?           @relation("BracketHomeTeam", fields: [homeTeamId], references: [id])
+  awayTeam        Team?           @relation("BracketAwayTeam", fields: [awayTeamId], references: [id])
+  winnerTeam      Team?           @relation("BracketWinnerTeam", fields: [winnerTeamId], references: [id])
+  loserTeam       Team?           @relation("BracketLoserTeam", fields: [loserTeamId], references: [id])
+
+  // Relations pour la progression
+  nextMatch       BracketMatch?   @relation("MatchProgression", fields: [nextMatchId], references: [id], onDelete: SetNull)
+  previousMatches BracketMatch[]  @relation("MatchProgression")
+
+  @@unique([roundId, matchNumber])
+  @@index([roundId])
+  @@index([homeTeamId])
+  @@index([awayTeamId])
+  @@index([nextMatchId])
+}

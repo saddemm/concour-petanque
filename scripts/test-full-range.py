@@ -1,0 +1,155 @@
+#!/usr/bin/env python3
+"""
+Test complet du système de tournoi de 12 à 80 équipes
+"""
+
+import json
+import subprocess
+import sys
+import time
+
+BASE_URL = 'http://localhost:3000'
+
+def api_call(method, endpoint, data=None):
+    cmd = ['curl', '-s']
+    if method != 'GET':
+        cmd.extend(['-X', method])
+    cmd.append(f'{BASE_URL}{endpoint}')
+    cmd.extend(['-H', 'Content-Type: application/json'])
+    if data:
+        cmd.extend(['-d', json.dumps(data)])
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    try:
+        return json.loads(result.stdout)
+    except:
+        return {'error': 'Parse error', 'raw': result.stdout[:500]}
+
+def test_tournament(num_teams, team_type='DOUBLETTE'):
+    """Test rapide d'un tournoi"""
+    players_per_team = {'TETE_A_TETE': 1, 'DOUBLETTE': 2, 'TRIPLETTE': 3}.get(team_type, 2)
+
+    # Créer le concours
+    result = api_call('POST', '/api/contests', {
+        'name': f'Test {num_teams} équipes',
+        'teamType': team_type,
+        'gameMode': 'MONTE'
+    })
+    if 'error' in result or 'id' not in result:
+        return False, f"Erreur création: {result}"
+
+    contest_id = result['id']
+
+    # Créer les équipes
+    for i in range(1, num_teams + 1):
+        players = [{'name': f'J{i}{chr(65+j)}', 'order': j+1} for j in range(players_per_team)]
+        api_call('POST', f'/api/contests/{contest_id}/teams', {'players': players})
+
+    # Générer le tirage
+    result = api_call('POST', f'/api/contests/{contest_id}/draw')
+    if 'error' in result:
+        api_call('DELETE', f'/api/contests/{contest_id}')
+        return False, f"Erreur tirage: {result}"
+
+    # Jouer les matchs de qualification
+    for _ in range(100):
+        contest = api_call('GET', f'/api/contests/{contest_id}')
+        played = 0
+        for rd in contest.get('qualificationRounds', []):
+            for m in rd.get('matches', []):
+                if m['status'] != 'FINISHED' and not m.get('isBye'):
+                    home, away = m.get('homeTeam'), m.get('awayTeam')
+                    if home and away:
+                        api_call('PATCH', f'/api/contests/{contest_id}/qualification-matches/{m["id"]}',
+                                {'winnerTeamId': home['id']})
+                        played += 1
+        if played == 0:
+            break
+
+    # Jouer les matchs de brackets
+    for _ in range(50):
+        contest = api_call('GET', f'/api/contests/{contest_id}')
+        played = 0
+        for bracket in contest.get('brackets', []):
+            for rd in bracket.get('rounds', []):
+                for m in rd.get('matches', []):
+                    if m.get('isBye') or m['status'] == 'FINISHED':
+                        continue
+                    home, away = m.get('homeTeam'), m.get('awayTeam')
+                    if home and away:
+                        api_call('PATCH', f'/api/contests/{contest_id}/bracket-matches/{m["id"]}',
+                                {'winnerTeamId': home['id']})
+                        played += 1
+        if played == 0:
+            break
+
+    # Vérifier les finales
+    contest = api_call('GET', f'/api/contests/{contest_id}')
+    success = True
+    errors = []
+
+    for bracket in contest.get('brackets', []):
+        finale = None
+        for rd in bracket.get('rounds', []):
+            if 'Finale' in rd.get('roundName', '') and rd.get('matches'):
+                finale = rd['matches'][0]
+                break
+
+        if finale:
+            if finale['status'] == 'FINISHED' or finale.get('isBye'):
+                pass  # OK
+            else:
+                home, away = finale.get('homeTeam'), finale.get('awayTeam')
+                if not home or not away:
+                    success = False
+                    errors.append(f"Bracket {bracket['type']}: Finale incomplète")
+                else:
+                    success = False
+                    errors.append(f"Bracket {bracket['type']}: Finale non jouée")
+        else:
+            success = False
+            errors.append(f"Bracket {bracket['type']}: Pas de finale")
+
+    # Nettoyer
+    api_call('DELETE', f'/api/contests/{contest_id}')
+
+    return success, "; ".join(errors) if errors else "OK"
+
+def main():
+    min_teams = int(sys.argv[1]) if len(sys.argv) > 1 else 12
+    max_teams = int(sys.argv[2]) if len(sys.argv) > 2 else 80
+
+    print(f"\n{'='*70}")
+    print(f"TEST COMPLET DE {min_teams} À {max_teams} ÉQUIPES")
+    print(f"{'='*70}\n")
+
+    results = {}
+    failed = []
+
+    for n in range(min_teams, max_teams + 1):
+        success, msg = test_tournament(n)
+        results[n] = success
+        status = "✅" if success else "❌"
+        print(f"{status} {n:3d} équipes: {msg}")
+        if not success:
+            failed.append((n, msg))
+        time.sleep(0.1)
+
+    # Résumé
+    passed = sum(1 for v in results.values() if v)
+    total = len(results)
+
+    print(f"\n{'='*70}")
+    print(f"RÉSUMÉ: {passed}/{total} tests réussis")
+    print(f"{'='*70}")
+
+    if failed:
+        print("\nÉCHECS:")
+        for n, msg in failed:
+            print(f"  ❌ {n} équipes: {msg}")
+        sys.exit(1)
+    else:
+        print("\n🎉 TOUS LES TESTS PASSENT!")
+        sys.exit(0)
+
+if __name__ == '__main__':
+    main()

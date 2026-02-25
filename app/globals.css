@@ -1,0 +1,333 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #FEFCF8;
+  --foreground: #1a1a1a;
+
+  /* Couleurs pétanque */
+  --petanque-green: #2D5A27;
+  --petanque-green-light: #4A7C43;
+  --petanque-green-dark: #1E3D1A;
+  --petanque-sand: #E8DCC4;
+  --petanque-sand-light: #F5EFE0;
+  --petanque-sand-dark: #D4C4A8;
+  --petanque-wood: #8B5A2B;
+  --petanque-wood-light: #A67C52;
+  --petanque-metal: #4A5568;
+  --petanque-metal-light: #718096;
+  --petanque-gold: #D4AF37;
+  --petanque-silver: #C0C0C0;
+  --petanque-bronze: #CD7F32;
+}
+
+body {
+  color: var(--foreground);
+  background: linear-gradient(180deg, var(--petanque-sand-light) 0%, #ffffff 100%);
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  min-height: 100vh;
+}
+
+/* Animations */
+@keyframes bounce-slow {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+@keyframes roll {
+  0% { transform: translateX(0) rotate(0deg); }
+  100% { transform: translateX(10px) rotate(360deg); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 5px rgba(45, 90, 39, 0.3); }
+  50% { box-shadow: 0 0 20px rgba(45, 90, 39, 0.5); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-bounce-slow {
+  animation: bounce-slow 2s ease-in-out infinite;
+}
+
+.animate-roll {
+  animation: roll 1s ease-in-out;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out forwards;
+}
+
+/* Textures et patterns */
+.bg-terrain {
+  background-color: var(--petanque-sand);
+  background-image:
+    radial-gradient(circle at 20% 50%, rgba(139, 90, 43, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 30%, rgba(139, 90, 43, 0.08) 0%, transparent 40%);
+}
+
+.bg-grass {
+  background: linear-gradient(180deg, var(--petanque-green) 0%, var(--petanque-green-dark) 100%);
+}
+
+/* Cards stylisées */
+.card-petanque {
+  background: white;
+  border-radius: 16px;
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(212, 196, 168, 0.3);
+  transition: all 0.3s ease;
+}
+
+.card-petanque:hover {
+  transform: translateY(-4px);
+  box-shadow:
+    0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Boutons stylisés */
+.btn-petanque {
+  background: linear-gradient(135deg, var(--petanque-green) 0%, var(--petanque-green-dark) 100%);
+  color: white;
+  font-weight: 600;
+  padding: 12px 24px;
+  border-radius: 12px;
+  box-shadow: 0 4px 14px rgba(45, 90, 39, 0.4);
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.btn-petanque:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(45, 90, 39, 0.5);
+  background: linear-gradient(135deg, var(--petanque-green-light) 0%, var(--petanque-green) 100%);
+}
+
+.btn-petanque:active {
+  transform: translateY(0);
+}
+
+/* Badge status */
+.badge-status {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Header gradient */
+.header-gradient {
+  background: linear-gradient(135deg, var(--petanque-green) 0%, var(--petanque-green-dark) 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.header-gradient::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image:
+    radial-gradient(circle at 10% 20%, rgba(255, 255, 255, 0.1) 0%, transparent 30%),
+    radial-gradient(circle at 90% 80%, rgba(255, 255, 255, 0.05) 0%, transparent 40%);
+  pointer-events: none;
+}
+
+/* Input stylisé */
+.input-petanque {
+  border: 2px solid var(--petanque-sand-dark);
+  border-radius: 10px;
+  padding: 12px 16px;
+  transition: all 0.2s ease;
+  background: white;
+}
+
+.input-petanque:focus {
+  border-color: var(--petanque-green);
+  box-shadow: 0 0 0 3px rgba(45, 90, 39, 0.1);
+  outline: none;
+}
+
+/* Numéro d'équipe */
+.team-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, var(--petanque-metal) 0%, var(--petanque-metal-light) 100%);
+  color: white;
+  font-weight: bold;
+  border-radius: 50%;
+  box-shadow:
+    inset 0 2px 4px rgba(255, 255, 255, 0.3),
+    0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.team-number-lg {
+  width: 48px;
+  height: 48px;
+  font-size: 1.25rem;
+}
+
+/* Pool card */
+.pool-card {
+  background: linear-gradient(180deg, #ffffff 0%, var(--petanque-sand-light) 100%);
+  border-radius: 16px;
+  border: 2px solid var(--petanque-sand-dark);
+  overflow: hidden;
+}
+
+.pool-header {
+  background: linear-gradient(135deg, var(--petanque-green) 0%, var(--petanque-green-light) 100%);
+  color: white;
+  padding: 16px 20px;
+}
+
+/* Match card */
+.match-card {
+  background: white;
+  border-radius: 12px;
+  border: 1px solid var(--petanque-sand-dark);
+  padding: 12px 16px;
+  transition: all 0.2s ease;
+}
+
+.match-card:hover {
+  border-color: var(--petanque-green);
+  box-shadow: 0 4px 12px rgba(45, 90, 39, 0.15);
+}
+
+.match-card.finished {
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border-color: #86efac;
+}
+
+/* Score display */
+.score-display {
+  font-family: 'Monaco', 'Consolas', monospace;
+  font-size: 1.25rem;
+  font-weight: bold;
+  background: var(--petanque-sand-light);
+  padding: 4px 12px;
+  border-radius: 6px;
+  min-width: 40px;
+  text-align: center;
+}
+
+/* Trophy colors */
+.trophy-gold { color: var(--petanque-gold); }
+.trophy-silver { color: var(--petanque-silver); }
+.trophy-bronze { color: var(--petanque-bronze); }
+
+/* Bracket tree */
+.bracket-round {
+  background: linear-gradient(180deg, var(--petanque-sand-light) 0%, white 100%);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.bracket-match {
+  background: white;
+  border: 2px solid var(--petanque-sand-dark);
+  border-radius: 10px;
+  transition: all 0.2s ease;
+}
+
+.bracket-match.clickable:hover {
+  border-color: var(--petanque-green);
+  transform: scale(1.02);
+}
+
+/* Modal overlay */
+.modal-overlay {
+  background: rgba(30, 61, 26, 0.6);
+  backdrop-filter: blur(4px);
+}
+
+/* Scrollbar stylisé */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--petanque-sand-light);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--petanque-sand-dark);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--petanque-wood);
+}
+
+/* Empty state */
+.empty-state {
+  background: linear-gradient(180deg, var(--petanque-sand-light) 0%, white 100%);
+  border: 2px dashed var(--petanque-sand-dark);
+  border-radius: 16px;
+  padding: 48px;
+  text-align: center;
+}
+
+/* Table stylisée */
+.table-petanque {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.table-petanque th {
+  background: var(--petanque-green);
+  color: white;
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 600;
+}
+
+.table-petanque th:first-child {
+  border-radius: 8px 0 0 0;
+}
+
+.table-petanque th:last-child {
+  border-radius: 0 8px 0 0;
+}
+
+.table-petanque td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--petanque-sand);
+}
+
+.table-petanque tr:nth-child(even) {
+  background: var(--petanque-sand-light);
+}
+
+.table-petanque tr.qualified {
+  background: linear-gradient(90deg, rgba(45, 90, 39, 0.1) 0%, transparent 100%);
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
